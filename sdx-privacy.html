@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Privacy Policy — SDx Speed Dial</title>
+<meta name="description" content="SDx Privacy Policy — no data collected, no tracking."/>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#f0f0f4;--card:#fff;--text:#141420;
+  --muted:#888899;--accent:#3b82f6;--border:rgba(0,0,0,0.07);
+}
+
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);line-height:1.7}
+
+nav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 40px;border-bottom:1px solid var(--border);
+  background:rgba(240,240,244,0.9);
+  position:sticky;top:0;z-index:10;
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text)}
+.logo-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px;width:26px;height:26px}
+.logo-grid span{border-radius:3px;background:#2d2d3a;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:#e8e4ff}
+.logo-grid span.lx{color:#a89fff;font-weight:300;font-size:9px}
+.logo-grid span.le{background:none;border:1.5px dashed rgba(45,45,58,0.3)}
+.nav-name{font-size:15px;font-weight:600}
+nav a.back{font-size:13px;color:var(--muted);text-decoration:none}
+nav a.back:hover{color:var(--text)}
+
+.container{max-width:680px;margin:0 auto;padding:60px 40px 100px}
+
+.page-label{
+  font-size:11px;font-weight:600;letter-spacing:0.1em;
+  text-transform:uppercase;color:var(--accent);margin-bottom:10px;
+}
+h1{font-size:36px;font-weight:600;letter-spacing:-1px;margin-bottom:8px}
+.updated{font-size:13px;color:var(--muted);margin-bottom:48px}
+
+.policy-card{
+  background:var(--card);border-radius:16px;
+  border:1px solid var(--border);
+  padding:32px 36px;margin-bottom:16px;
+  box-shadow:0 1px 6px rgba(0,0,0,0.04);
+}
+
+h2{font-size:16px;font-weight:600;margin-bottom:10px;color:var(--text)}
+p{font-size:14px;color:#444;line-height:1.75;margin-bottom:10px}
+p:last-child{margin-bottom:0}
+ul{padding-left:18px;margin:8px 0}
+ul li{font-size:14px;color:#444;line-height:1.75;margin-bottom:4px}
+
+.highlight{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(59,130,246,0.08);color:var(--accent);
+  padding:10px 16px;border-radius:10px;
+  font-size:13px;font-weight:500;
+  margin-bottom:32px;border:1px solid rgba(59,130,246,0.15);
+}
+
+footer{
+  border-top:1px solid var(--border);padding:24px 40px;
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;
+}
+footer p,footer a{font-size:12px;color:var(--muted);text-decoration:none}
+footer a:hover{color:var(--text)}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="index.html">
+    <div class="logo-grid">
+      <span>S</span><span>D</span>
+      <span class="lx">×</span><span class="le"></span>
+    </div>
+    <span class="nav-name">SDx</span>
+  </a>
+  <a class="back" href="index.html">← Back to home</a>
+</nav>
+
+<div class="container">
+  <div class="page-label">Legal</div>
+  <h1>Privacy Policy</h1>
+  <p class="updated">Last updated: March 2026</p>
+
+  <div class="highlight">
+    ✓ SDx does not collect, transmit, or store any personal data on external servers.
+  </div>
+
+  <div class="policy-card">
+    <h2>Overview</h2>
+    <p>SDx — Speed Dial ("the extension") is a browser extension that replaces your new tab page with a customizable speed dial. This privacy policy explains what data the extension accesses and how it is used.</p>
+  </div>
+
+  <div class="policy-card">
+    <h2>Data we collect</h2>
+    <p><strong>None.</strong> SDx does not collect any personal information, usage statistics, analytics, or telemetry of any kind.</p>
+    <p>The extension does not transmit any data to any server controlled by the developer or any third party.</p>
+  </div>
+
+  <div class="policy-card">
+    <h2>Local storage</h2>
+    <p>SDx stores your settings and speed dial links locally in your browser using the standard browser <code>localStorage</code> API. This data:</p>
+    <ul>
+      <li>Never leaves your device</li>
+      <li>Is only accessible to the extension itself</li>
+      <li>Can be deleted at any time by clearing your browser data or uninstalling the extension</li>
+      <li>Can be exported and imported by you as a JSON file (backup feature)</li>
+    </ul>
+  </div>
+
+  <div class="policy-card">
+    <h2>Favicon loading</h2>
+    <p>To display website icons for your speed dial tiles, the extension requests favicons from two public APIs:</p>
+    <ul>
+      <li><strong>DuckDuckGo Favicon API</strong> — <code>icons.duckduckgo.com</code></li>
+      <li><strong>Google Favicon API</strong> — <code>www.google.com/s2/favicons</code> (fallback only)</li>
+    </ul>
+    <p>These requests include only the domain name of the website whose icon is being fetched (e.g. <code>youtube.com</code>). No personal data, browsing history, or identifiers are included. These services are governed by their own privacy policies.</p>
+  </div>
+
+  <div class="policy-card">
+    <h2>Search</h2>
+    <p>If you enable the optional search bar and perform a search, your query is sent directly to the search engine you selected (Google, DuckDuckGo, or Brave). SDx does not intercept, log, or process your search queries in any way.</p>
+  </div>
+
+  <div class="policy-card">
+    <h2>Permissions</h2>
+    <p>SDx requests only the <code>storage</code> permission, which allows saving your settings locally in the browser. No other browser permissions are requested or used.</p>
+  </div>
+
+  <div class="policy-card">
+    <h2>Third-party services</h2>
+    <p>SDx does not integrate any advertising networks, analytics platforms, crash reporting services, or social media trackers.</p>
+  </div>
+
+  <div class="policy-card">
+    <h2>Changes to this policy</h2>
+    <p>If this privacy policy changes in a future version of the extension, the updated policy will be published at this URL and the "last updated" date above will be revised.</p>
+  </div>
+
+  <div class="policy-card">
+    <h2>Contact</h2>
+    <p>For any questions regarding this privacy policy, please contact: <a href="mailto:your@email.com" style="color:var(--accent)">your@email.com</a></p>
+  </div>
+</div>
+
+<footer>
+  <p>© 2026 SDx — Speed Dial</p>
+  <a href="index.html">← Back to home</a>
+</footer>
+
+</body>
+</html>

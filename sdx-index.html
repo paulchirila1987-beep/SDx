@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>SDx — Speed Dial</title>
+<meta name="description" content="A minimal, elegant new tab speed dial for Chrome and Edge. Customize themes, accents, clock, search and more."/>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#f0f0f4;
+  --card:#ffffff;
+  --text:#141420;
+  --muted:#888899;
+  --accent:#3b82f6;
+  --accent-soft:rgba(59,130,246,0.1);
+  --border:rgba(0,0,0,0.07);
+  --radius:16px;
+}
+
+html{scroll-behavior:smooth}
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  line-height:1.6;
+}
+
+/* ── NAV ── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 40px;
+  background:rgba(240,240,244,0.82);
+  -webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+}
+
+.nav-logo{display:flex;align-items:center;gap:10px}
+.logo-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px;width:28px;height:28px}
+.logo-grid span{
+  border-radius:4px;background:#2d2d3a;
+  display:flex;align-items:center;justify-content:center;
+  font-size:8px;font-weight:700;color:#e8e4ff;
+}
+.logo-grid span.lx{color:#a89fff;font-weight:300;font-size:10px}
+.logo-grid span.le{background:none;border:1.5px dashed rgba(45,45,58,0.35)}
+.nav-name{font-size:16px;font-weight:600;letter-spacing:-0.3px}
+
+nav a{
+  font-size:13px;color:var(--muted);text-decoration:none;
+  transition:color 0.15s;
+}
+nav a:hover{color:var(--text)}
+
+.nav-links{display:flex;gap:28px;align-items:center}
+.nav-cta{
+  background:var(--accent);color:#fff!important;
+  padding:7px 18px;border-radius:8px;font-weight:500;
+  transition:background 0.15s,transform 0.1s!important;
+}
+.nav-cta:hover{background:#2563eb;transform:translateY(-1px)!important;color:#fff!important}
+
+/* ── HERO ── */
+.hero{
+  padding:140px 40px 80px;
+  text-align:center;
+  max-width:760px;margin:0 auto;
+}
+
+.hero-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--accent-soft);color:var(--accent);
+  padding:5px 14px;border-radius:50px;
+  font-size:12px;font-weight:500;letter-spacing:0.04em;
+  margin-bottom:28px;
+}
+
+h1{
+  font-size:clamp(36px,6vw,60px);
+  font-weight:600;letter-spacing:-2px;
+  line-height:1.1;
+  margin-bottom:20px;
+  color:var(--text);
+}
+
+h1 span{color:var(--accent)}
+
+.hero-sub{
+  font-size:18px;font-weight:300;color:var(--muted);
+  max-width:520px;margin:0 auto 40px;line-height:1.7;
+}
+
+.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+
+.btn-primary{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--accent);color:#fff;
+  padding:12px 28px;border-radius:10px;
+  font-size:14px;font-weight:500;text-decoration:none;
+  transition:background 0.15s,transform 0.1s;
+}
+.btn-primary:hover{background:#2563eb;transform:translateY(-2px)}
+
+.btn-secondary{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--card);color:var(--text);
+  padding:12px 28px;border-radius:10px;
+  font-size:14px;font-weight:500;text-decoration:none;
+  border:1px solid var(--border);
+  transition:background 0.15s,transform 0.1s;
+  box-shadow:0 1px 6px rgba(0,0,0,0.06);
+}
+.btn-secondary:hover{background:#f8f8fc;transform:translateY(-2px)}
+
+/* ── PREVIEW ── */
+.preview{
+  max-width:900px;margin:0 auto;padding:0 40px 80px;
+}
+.preview-card{
+  background:var(--card);border-radius:24px;
+  border:1px solid var(--border);
+  box-shadow:0 8px 48px rgba(0,0,0,0.08);
+  padding:40px;
+  display:flex;align-items:center;justify-content:center;
+  min-height:260px;
+}
+
+/* fake dial grid preview */
+.dial-preview{
+  display:grid;grid-template-columns:repeat(6,64px);gap:16px;
+}
+.dial{
+  width:64px;height:64px;border-radius:14px;
+  background:#f0f0f4;border:1px solid rgba(0,0,0,0.07);
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:4px;
+}
+.dial-icon{width:28px;height:28px;border-radius:7px;background:#e0e0e8}
+.dial-label{width:36px;height:5px;border-radius:3px;background:#d8d8e0}
+
+.dial.a1 .dial-icon{background:#ea4335}
+.dial.a2 .dial-icon{background:#ff0000}
+.dial.a3 .dial-icon{background:#4285f4}
+.dial.a4 .dial-icon{background:#ff4500}
+.dial.a5 .dial-icon{background:#00b2ff}
+.dial.a6 .dial-icon{background:#1877f2}
+.dial.b1 .dial-icon{background:#10a37f}
+.dial.b2 .dial-icon{background:#6c63ff}
+.dial.b3 .dial-icon{background:#ff6600}
+.dial.b4 .dial-icon{background:#34a853}
+.dial.b5 .dial-icon{background:#7c3aed}
+.dial.b6 .dial-icon{background:#0078d4}
+
+/* ── FEATURES ── */
+.features{
+  max-width:900px;margin:0 auto;padding:0 40px 100px;
+}
+
+.section-label{
+  font-size:11px;font-weight:600;letter-spacing:0.1em;
+  text-transform:uppercase;color:var(--accent);
+  margin-bottom:12px;
+}
+
+h2{
+  font-size:clamp(24px,4vw,36px);font-weight:600;
+  letter-spacing:-1px;margin-bottom:48px;
+}
+
+.feat-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:16px;
+}
+
+.feat-card{
+  background:var(--card);border-radius:var(--radius);
+  border:1px solid var(--border);
+  padding:24px;
+  box-shadow:0 1px 6px rgba(0,0,0,0.05);
+  transition:transform 0.15s,box-shadow 0.15s;
+}
+.feat-card:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,0.08)}
+
+.feat-icon{
+  width:38px;height:38px;border-radius:10px;
+  background:var(--accent-soft);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;margin-bottom:14px;
+}
+.feat-card h3{font-size:14px;font-weight:600;margin-bottom:6px}
+.feat-card p{font-size:13px;color:var(--muted);line-height:1.6}
+
+/* ── PRIVACY STRIP ── */
+.privacy-strip{
+  max-width:900px;margin:0 auto;padding:0 40px 100px;
+}
+.strip-inner{
+  background:var(--text);color:#fff;
+  border-radius:var(--radius);padding:36px 40px;
+  display:flex;align-items:center;gap:32px;flex-wrap:wrap;
+}
+.strip-inner h3{font-size:20px;font-weight:600;margin-bottom:6px}
+.strip-inner p{font-size:14px;color:rgba(255,255,255,0.6);line-height:1.6}
+.strip-badges{display:flex;gap:10px;flex-wrap:wrap;flex-shrink:0}
+.badge{
+  background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.85);
+  padding:6px 14px;border-radius:50px;font-size:12px;font-weight:500;
+  border:1px solid rgba(255,255,255,0.12);
+}
+
+/* ── FOOTER ── */
+footer{
+  border-top:1px solid var(--border);
+  padding:28px 40px;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:12px;
+}
+footer p{font-size:12px;color:var(--muted)}
+footer a{font-size:12px;color:var(--muted);text-decoration:none}
+footer a:hover{color:var(--text)}
+.footer-links{display:flex;gap:20px}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">
+    <div class="logo-grid">
+      <span>S</span><span>D</span>
+      <span class="lx">×</span><span class="le"></span>
+    </div>
+    <span class="nav-name">SDx</span>
+  </div>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="privacy.html">Privacy</a>
+    <a href="https://microsoftedge.microsoft.com/addons/" class="nav-cta">Add to Edge</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-badge">✦ Free · No account · No tracking</div>
+  <h1>Your new tab,<br/><span>the way you want it</span></h1>
+  <p class="hero-sub">SDx replaces your new tab with a clean, fast speed dial. Fully customizable — themes, accents, clock, search and more.</p>
+  <div class="hero-btns">
+    <a href="https://microsoftedge.microsoft.com/addons/" class="btn-primary">⬇ Add to Edge — Free</a>
+    <a href="#features" class="btn-secondary">See features →</a>
+  </div>
+</section>
+
+<!-- Preview -->
+<div class="preview">
+  <div class="preview-card">
+    <div style="display:flex;flex-direction:column;gap:16px;align-items:center">
+      <div class="dial-preview">
+        <div class="dial a1"><div class="dial-icon"></div><div class="dial-label"></div></div>
+        <div class="dial a2"><div class="dial-icon"></div><div class="dial-label"></div></div>
+        <div class="dial a3"><div class="dial-icon"></div><div class="dial-label"></div></div>
+        <div class="dial a4"><div class="dial-icon"></div><div class="dial-label"></div></div>
+        <div class="dial a5"><div class="dial-icon"></div><div class="dial-label"></div></div>
+        <div class="dial a6"><div class="dial-icon"></div><div class="dial-label"></div></div>
+        <div class="dial b1"><div class="dial-icon"></div><div class="dial-label"></div></div>
+        <div class="dial b2"><div class="dial-icon"></div><div class="dial-label"></div></div>
+        <div class="dial b3"><div class="dial-icon"></div><div class="dial-label"></div></div>
+        <div class="dial b4"><div class="dial-icon"></div><div class="dial-label"></div></div>
+        <div class="dial b5"><div class="dial-icon"></div><div class="dial-label"></div></div>
+        <div class="dial b6"><div class="dial-icon"></div><div class="dial-label"></div></div>
+      </div>
+      <p style="font-size:12px;color:#aaa;letter-spacing:0.04em">REPLACE THIS WITH A SCREENSHOT OF YOUR EXTENSION</p>
+    </div>
+  </div>
+</div>
+
+<!-- Features -->
+<section class="features" id="features">
+  <div class="section-label">Features</div>
+  <h2>Everything you need,<br/>nothing you don't</h2>
+  <div class="feat-grid">
+    <div class="feat-card">
+      <div class="feat-icon">🎨</div>
+      <h3>16 Themes</h3>
+      <p>System grays, warm tones, color tints, and dark backgrounds. Matches any browser style.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">⚡</div>
+      <h3>Fast by design</h3>
+      <p>No frameworks, no bloat. Pure HTML, CSS and vanilla JS. Loads instantly every time.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🌙</div>
+      <h3>Auto dark mode</h3>
+      <p>Follows your system preference automatically, or set it manually at any time.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🔍</div>
+      <h3>Built-in search</h3>
+      <p>Optional search bar with Google, DuckDuckGo, or Brave. Start typing anywhere to search.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">⚙️</div>
+      <h3>Fully customizable</h3>
+      <p>Adjust tile size, spacing, corners, font, accent color, hover effect and more.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">💾</div>
+      <h3>Export & Import</h3>
+      <p>Back up your links and settings as a JSON file. Restore on any device in one click.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Privacy strip -->
+<div class="privacy-strip">
+  <div class="strip-inner">
+    <div style="flex:1;min-width:200px">
+      <h3>Private by default</h3>
+      <p>SDx stores everything locally in your browser. No servers, no accounts, no analytics, no ads — ever.</p>
+    </div>
+    <div class="strip-badges">
+      <span class="badge">No data collected</span>
+      <span class="badge">Works offline</span>
+      <span class="badge">No account needed</span>
+      <span class="badge">Open source</span>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>© 2026 SDx — Speed Dial</p>
+  <div class="footer-links">
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="mailto:your@email.com">Support</a>
+  </div>
+</footer>
+
+</body>
+</html>
