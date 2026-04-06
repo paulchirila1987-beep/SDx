@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>New Tab</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#eceef3;--card:rgba(255,255,255,0.72);--card-hover:rgba(255,255,255,0.92);
+  --card-border:rgba(255,255,255,0.86);--text:#1a1a2e;--text-muted:#8a8a9a;
+  --accent:#3b82f6;--accent-soft:rgba(59,130,246,0.15);--danger:#ff4f4f;
+  --panel-bg:rgba(248,249,252,0.97);--panel-border:rgba(210,215,228,0.7);
+  --modal-bg:#fff;--input-bg:#f0f1f5;
+  --shadow:0 2px 12px rgba(0,0,0,0.07);--shadow-hover:0 8px 28px rgba(0,0,0,0.13);
+  --radius:18px;--card-size:88px;--gap:38px;--cols:8;--card-radius:14px;
+  --label-size:10px;--clock-font:56px;--greeting-font:15px;
+}
+html,body{height:100%;font-family:'DM Sans',sans-serif;font-size:13px}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);transition:background 0.5s;position:relative;overflow-x:hidden}
+#bg-canvas{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:0;transition:opacity 0.8s}
+#bg-canvas.show{opacity:1}
+
+/* MAIN LAYOUT */
+#main-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;width:100%;padding:0 24px}
+#top-widgets{display:flex;flex-direction:column;align-items:center;gap:0;margin-bottom:52px}
+#greeting-wrap{text-align:center;display:none;margin-bottom:6px}
+#greeting-wrap.show{display:block}
+#greeting-text{font-size:var(--greeting-font);font-weight:300;color:var(--text-muted)}
+#clock-wrap{text-align:center;display:none;margin-bottom:12px}
+#clock-wrap.show{display:block}
+#clock-time{font-size:var(--clock-font);font-weight:300;color:var(--text-muted);letter-spacing:-3px;line-height:1}
+body.dark #clock-time{color:var(--text-muted)}
+#clock-date{font-size:15px;color:var(--text-muted);margin-top:6px;letter-spacing:0.02em;font-weight:500}
+#search-wrap{display:none;width:min(440px,90vw);margin-bottom:0}
+#search-wrap.show{display:block}
+#search-input{width:100%;padding:11px 20px;background:var(--panel-bg);border:1.5px solid var(--panel-border);border-radius:50px;font-size:14px;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;box-shadow:var(--shadow);transition:border-color 0.15s,box-shadow 0.15s}
+#search-input:focus{border-color:var(--accent);box-shadow:0 4px 16px var(--accent-soft)}
+#search-input::placeholder{color:var(--text-muted)}
+
+/* WEATHER WIDGET */
+#weather-widget{position:fixed;top:14px;left:16px;display:none;z-index:50}
+#weather-widget.show{display:block}
+#weather-card{border-radius:var(--card-radius);padding:12px 16px;cursor:pointer;transition:all 0.2s;user-select:none;min-width:150px;background:var(--panel-bg);border:1px solid var(--panel-border);box-shadow:0 4px 20px rgba(0,0,0,0.12)}
+/* on weather bg, ensure cards are opaque */
+
+#weather-card:hover{box-shadow:var(--shadow-hover);transform:translateY(-1px)}
+#weather-top{display:flex;align-items:center;gap:10px}
+#weather-icon{display:flex;align-items:center;flex-shrink:0;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.2));color:var(--text)}
+#weather-icon svg{width:36px;height:36px}
+#wp-icon{color:var(--text)}
+#weather-temp{font-size:26px;font-weight:300;color:var(--text);letter-spacing:-1px;line-height:1}
+#weather-bottom{margin-top:5px}
+#weather-desc{font-size:11px;color:var(--text-muted);text-transform:capitalize;font-weight:500}
+#weather-city{font-size:10px;color:var(--text-muted);opacity:0.7;margin-top:2px}
+#weather-loading{font-size:11px;color:var(--text-muted)}
+
+/* weather widget refresh button */
+#weather-widget-refresh{position:absolute;top:6px;right:6px;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,0.06);border:none;font-size:11px;cursor:pointer;color:var(--text-muted);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.15s,background 0.15s;line-height:1;padding:0}
+#weather-card{position:relative}
+#weather-card:hover #weather-widget-refresh{opacity:1}
+#weather-widget-refresh:hover{background:rgba(0,0,0,0.14)!important}
+body.dark #weather-widget-refresh{background:rgba(255,255,255,0.08)}
+
+/* popup stats row */
+#wp-stats-old{display:none}
+
+/* popup refresh in dark */
+body.dark #wp-refresh{color:rgba(255,255,255,0.2)!important}
+body.dark #wp-refresh:hover{color:rgba(255,255,255,0.5)!important}
+
+/* card fade-in on load */
+@keyframes cardFadeIn{from{opacity:0;translate:0 6px}to{opacity:1;translate:0 0}}
+.card{animation:cardFadeIn 0.3s ease forwards}
+#grid .card:nth-child(1){animation-delay:0ms}
+#grid .card:nth-child(2){animation-delay:20ms}
+#grid .card:nth-child(3){animation-delay:40ms}
+#grid .card:nth-child(4){animation-delay:60ms}
+#grid .card:nth-child(5){animation-delay:80ms}
+#grid .card:nth-child(6){animation-delay:100ms}
+#grid .card:nth-child(7){animation-delay:120ms}
+#grid .card:nth-child(8){animation-delay:140ms}
+#grid .card:nth-child(n+9){animation-delay:160ms}
+
+/* URL tooltip on card hover */
+.card[data-url]::after{content:attr(data-url);position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);background:rgba(10,10,20,0.82);color:#fff;font-size:9px;padding:3px 8px;border-radius:5px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity 0.15s;max-width:200px;overflow:hidden;text-overflow:ellipsis;z-index:20}
+.card[data-url]:hover::after{opacity:1}
+
+/* ── WEATHER POPUP ── */
+#weather-popup{
+  position:fixed;top:14px;left:16px;display:none;z-index:52;
+  width:360px;background:var(--modal-bg);border:1px solid var(--panel-border);
+  border-radius:var(--card-radius);box-shadow:0 20px 60px rgba(0,0,0,0.18);
+  overflow:hidden;animation:popIn 0.22s cubic-bezier(0.34,1.3,0.64,1);
+}
+@keyframes popIn{from{opacity:0;transform:scale(0.94) translateY(-6px)}to{opacity:1;transform:none}}
+#weather-popup.open{display:block}
+body.dark #weather-popup{background:#18182a;border-color:rgba(255,255,255,0.08)}
+
+/* popup header */
+#wp-header{padding:16px 16px 10px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+#wp-main{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
+#wp-right-col{display:flex;flex-direction:column;align-items:flex-end;gap:10px;flex-shrink:0}
+#wp-actions{display:flex;gap:3px;align-items:center}
+#wp-stats{display:flex;flex-direction:column;gap:5px;align-items:flex-end}
+#wp-stats span{font-size:11px;color:var(--text-muted);font-weight:500;white-space:nowrap;display:flex;align-items:center;gap:3px}
+#wp-icon svg{width:52px;height:52px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.15))}
+#wp-temp-big{font-size:42px;font-weight:300;color:var(--text);letter-spacing:-2px;line-height:1}
+#wp-desc-big{font-size:12px;color:var(--text-muted);margin-top:3px;text-transform:capitalize;font-weight:500}
+#wp-city-big{font-size:11px;color:var(--text-muted);opacity:0.7;margin-top:1px}
+#wp-hi-lo{font-size:11px;color:var(--text-muted);margin-top:3px}
+#wp-hi-lo b{color:var(--text);font-weight:500}
+#wp-close{width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,0.06);border:none;font-size:12px;cursor:pointer;color:var(--text-muted);display:flex;align-items:center;justify-content:center;transition:background 0.15s;flex-shrink:0}
+#wp-close:hover{background:rgba(0,0,0,0.12)}
+body.dark #wp-close{background:rgba(255,255,255,0.08)}
+#wp-pin,#wp-refresh{width:24px;height:24px;border-radius:50%;background:transparent;border:none;font-size:11px;cursor:pointer;color:rgba(0,0,0,0.18);display:flex;align-items:center;justify-content:center;transition:color 0.15s}
+#wp-pin:hover,#wp-refresh:hover{color:rgba(0,0,0,0.5)}
+body.dark #wp-pin,body.dark #wp-refresh{color:rgba(255,255,255,0.2)}
+body.dark #wp-pin:hover,body.dark #wp-refresh:hover{color:rgba(255,255,255,0.5)}
+
+/* temp progress bar */
+#wp-temp-bar-section{padding:0 18px 12px}
+#wp-temp-bar-wrap{position:relative;height:6px;border-radius:3px;background:rgba(0,0,0,0.1);overflow:visible;margin-bottom:4px}
+body.dark #wp-temp-bar-wrap{background:rgba(255,255,255,0.12)}
+#wp-temp-bar-fill{position:absolute;top:0;height:100%;border-radius:3px}
+#wp-temp-bar-dot{position:absolute;top:50%;width:10px;height:10px;border-radius:50%;background:var(--text);transform:translate(-50%,-50%);box-shadow:0 1px 4px rgba(0,0,0,0.2)}
+#wp-temp-bar-labels{display:flex;justify-content:space-between;font-size:9px;color:var(--text-muted);margin-top:2px}
+
+/* HOURLY CHART */
+#wp-chart-section{padding:0 14px 14px}
+.wp-section-label{font-size:9px;font-weight:600;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;padding:0 4px}
+#wp-chart-svg{width:100%;display:block;overflow:visible}
+/* chart tooltip */
+.chart-point{cursor:pointer}
+.chart-point circle{transition:r 0.15s}
+.chart-point:hover circle{r:5}
+
+/* SOLAR ARC */
+#wp-solar-section{padding:0 18px 16px}
+#wp-solar-wrap{position:relative;height:60px}
+#wp-solar-svg{width:100%;height:60px;overflow:visible}
+#wp-solar-labels{display:flex;justify-content:space-between;margin-top:2px;font-size:9px;color:var(--text-muted)}
+.wp-solar-time{display:flex;align-items:center;gap:3px;font-weight:500}
+
+/* 5-DAY FORECAST */
+#wp-daily-section{padding:0 18px 16px;border-top:1px solid rgba(0,0,0,0.05);padding-top:3px}
+body.dark #wp-daily-section{border-color:rgba(255,255,255,0.05)}
+.wd-item{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.045)}
+body.dark .wd-item{border-color:rgba(255,255,255,0.05)}
+.wd-item:last-child{border-bottom:none}
+.wd-day{font-size:11px;font-weight:600;color:var(--text);min-width:32px}
+.wd-icon svg{width:16px;height:16px;flex-shrink:0}
+.wd-desc{font-size:10px;color:var(--text-muted);flex:1}
+.wd-temps{font-size:11px;color:var(--text-muted);white-space:nowrap}
+.wd-temps b{color:var(--text);font-weight:500}
+
+/* provider link */
+#wp-provider-link{display:block;text-align:center;padding:8px 18px 14px;font-size:10px;color:var(--accent);text-decoration:none;opacity:0.7;transition:opacity 0.15s}
+#wp-provider-link:hover{opacity:1}
+
+/* GRID */
+#grid{display:grid;grid-template-columns:repeat(var(--cols),var(--card-size));gap:var(--gap)}
+.card{width:var(--card-size);height:var(--card-size);background:var(--card);border:1.5px solid var(--card-border);border-radius:var(--card-radius);box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;color:var(--text);position:relative;overflow:hidden;transition:background 0.18s,box-shadow 0.18s,transform 0.18s,border-color 0.18s;transform:translateZ(0);backface-visibility:hidden;-webkit-font-smoothing:subpixel-antialiased}
+body.hover-none .card:hover{}
+body.hover-lift .card:hover{transform:translateZ(0) translateY(-7px);box-shadow:0 16px 36px rgba(0,0,0,0.18)}
+body.hover-glow .card:hover{box-shadow:0 0 24px 6px var(--accent-soft),0 0 8px 2px var(--accent-soft),var(--shadow);transform:translateZ(0)}
+body.hover-float .card:hover{transform:translateZ(0) scale(1.08);box-shadow:0 12px 32px rgba(0,0,0,0.18)}
+body.hover-shine .card::before{content:'';position:absolute;top:-50%;left:-80%;width:55%;height:200%;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,0.45) 50%,transparent 65%);transform:skewX(-15deg);transition:left 0.55s ease;pointer-events:none;z-index:2}
+body.hover-shine .card:hover::before{left:130%}
+body.hover-shine .card:hover{box-shadow:var(--shadow-hover)}
+body.hover-shadow .card:hover{box-shadow:0 18px 40px rgba(0,0,0,0.22),0 6px 12px rgba(0,0,0,0.1);transform:translateZ(0) translateY(-3px)}
+body.hover-pulse .card:hover{animation:cardPulse 0.7s ease-in-out;box-shadow:var(--shadow-hover)}
+@keyframes cardPulse{0%{transform:translateZ(0) scale(1)}40%{transform:translateZ(0) scale(1.03)}70%{transform:translateZ(0) scale(0.99)}100%{transform:translateZ(0) scale(1)}}
+body.hover-tilt3d .card:hover{box-shadow:var(--shadow-hover)}
+.favicon-wrap{width:40px;height:40px;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:-4px}
+.favicon-wrap img{width:32px;height:32px;object-fit:contain;border-radius:6px}
+.favicon-emoji{font-size:26px;line-height:1;user-select:none}
+.favicon-fallback{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;color:#fff;flex-shrink:0}
+.label{font-size:var(--label-size);font-weight:400;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;position:absolute;bottom:7px;left:4px;right:4px}
+body.no-labels .label{display:none}
+.card-badge{position:absolute;top:5px;right:5px;min-width:16px;height:16px;background:#ff3b30;color:#fff;border-radius:50%;font-size:9px;font-weight:600;display:none;align-items:center;justify-content:center;padding:0 3px;line-height:1;box-shadow:0 1px 4px rgba(255,59,48,0.5);border:1.5px solid var(--card)}
+.card-badge.show{display:flex}
+.card-sep{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:4px 2px;cursor:default}
+body.edit-mode .card-sep{cursor:pointer}
+.sep-line{flex:1;height:1px;background:rgba(0,0,0,0.1)}
+body.dark .sep-line{background:rgba(255,255,255,0.1)}
+.sep-label{font-size:11px;font-weight:500;color:var(--text-muted);letter-spacing:0.05em;text-transform:uppercase;white-space:nowrap}
+.sep-label-empty{opacity:0.25;font-style:italic;font-weight:400;text-transform:none;letter-spacing:0}
+.sep-del{display:none;width:16px;height:16px;background:var(--danger);color:#fff;border:none;border-radius:50%;font-size:11px;line-height:16px;text-align:center;cursor:pointer;padding:0;flex-shrink:0}
+body.edit-mode .card-sep .sep-del{display:block}
+.card .delete-btn{display:none;position:absolute;top:5px;right:5px;width:18px;height:18px;background:var(--danger);color:#fff;border:none;border-radius:50%;font-size:13px;line-height:18px;text-align:center;cursor:pointer;z-index:10;padding:0}
+body.edit-mode .card .delete-btn{display:block}
+body.edit-mode .card.editable{outline:1.5px dashed rgba(108,99,255,0.35);outline-offset:0}
+.card-add{border:2px dashed rgba(0,0,0,0.14)!important;background:transparent!important;box-shadow:none!important;color:var(--text-muted);display:none;flex-direction:column;align-items:center;justify-content:center;gap:3px;transition:all 0.15s}
+.card-add:hover{background:rgba(255,255,255,0.45)!important;border-color:var(--accent)!important;color:var(--accent)!important}
+body.dark .card-add{border-color:rgba(255,255,255,0.18)!important;color:rgba(255,255,255,0.3)!important}
+body.edit-mode .card-add{display:flex}
+#edit-ok-bar{display:none;position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:60}
+#edit-ok-bar.show{display:block}
+#btn-done-bar{padding:10px 36px;border-radius:50px;background:var(--accent);color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;box-shadow:0 4px 20px var(--accent-soft);transition:all 0.15s}
+#btn-done-bar:hover{background:#2563eb;transform:translateY(-1px)}
+
+/* CORNER CONTROLS */
+#corner-controls{position:fixed;top:14px;right:16px;display:flex;gap:6px;align-items:center;opacity:0;transition:opacity 0.2s;z-index:51}
+body:hover #corner-controls,#corner-controls:focus-within{opacity:1}
+body.edit-mode #corner-controls{opacity:1}
+.icon-btn{width:34px;height:34px;border-radius:var(--card-radius);background:var(--panel-bg);border:1px solid var(--panel-border);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,0.1);transition:all 0.15s;color:var(--text-muted)}
+.icon-btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.icon-btn:hover{background:var(--card-hover);box-shadow:var(--shadow-hover);transform:translateY(-1px);color:var(--text)}
+.icon-btn.active-btn{background:var(--accent)!important;color:#fff!important;border-color:var(--accent)!important}
+.icon-btn.active-btn svg{stroke:#fff}
+
+/* SETTINGS PANEL */
+#settings-panel{position:fixed;top:56px;right:16px;display:none;flex-direction:column;background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:20px;box-shadow:0 12px 48px rgba(0,0,0,0.16);width:400px;z-index:49;max-height:calc(100vh - 74px);overflow-y:auto;overflow-x:hidden;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)}
+#settings-panel.open{display:flex}
+#settings-panel::-webkit-scrollbar{width:3px}
+#settings-panel::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.1);border-radius:3px}
+body.dark #settings-panel::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08)}
+#panel-header{display:flex;align-items:center;justify-content:space-between;padding:11px 14px 9px;border-bottom:1px solid var(--panel-border);position:sticky;top:0;background:var(--panel-bg);z-index:2;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)}
+#panel-header-left{display:flex;align-items:center;gap:8px;position:relative}
+.sdx-logo{display:flex;flex-wrap:wrap;width:22px;height:22px;gap:2px;flex-shrink:0;cursor:default}
+.sdx-logo span{width:9px;height:9px;border-radius:2px;background:#2d2d3a;display:flex;align-items:center;justify-content:center;font-size:4px;font-weight:700;color:#e8e4ff}
+.sdx-logo span.x{color:#a89fff;font-weight:300;font-size:6px}
+.sdx-logo span.empty{background:none;border:1px dashed rgba(45,45,58,0.3)}
+body.dark .sdx-logo span{background:#3a3a50}
+body.dark .sdx-logo span.empty{background:none;border-color:rgba(255,255,255,0.2)}
+.sdx-credit{display:none;position:absolute;top:28px;left:0;background:var(--modal-bg);border:1px solid var(--panel-border);border-radius:8px;padding:6px 10px;font-size:10px;color:var(--text-muted);white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,0.1);z-index:10}
+#panel-header-left:hover .sdx-credit{display:block}
+#panel-title{font-size:13px;font-weight:600;color:var(--text)}
+#panel-version{font-size:10px;color:var(--text-muted);margin-left:3px}
+.panel-close-btn{width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,0.06);border:none;cursor:pointer;color:var(--text-muted);font-size:12px;display:flex;align-items:center;justify-content:center;transition:background 0.15s}
+.panel-close-btn:hover{background:rgba(0,0,0,0.12)}
+body.dark .panel-close-btn{background:rgba(255,255,255,0.08)}
+
+/* SETTINGS BODY */
+.settings-body{padding:8px 10px 10px;display:flex;flex-direction:column;gap:7px}
+.s-card{background:rgba(0,0,0,0.025);border:1px solid rgba(0,0,0,0.055);border-radius:12px;padding:9px 10px 8px}
+body.dark .s-card{background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.06)}
+.s-title{font-size:9px;font-weight:600;color:var(--text-muted);letter-spacing:0.09em;text-transform:uppercase;margin-bottom:7px}
+.s-cols{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.s-row{display:flex;align-items:center;gap:7px}
+.s-lbl{font-size:9px;font-weight:600;color:var(--text-muted);letter-spacing:0.05em;text-transform:uppercase;min-width:44px;flex-shrink:0}
+.pills{display:flex;gap:3px;flex-wrap:wrap;flex:1}
+.icon-style-pill{padding:4px 7px!important;display:flex;align-items:center;justify-content:center}
+.icon-style-pill svg{display:block}
+.pill{padding:4px 9px;border-radius:7px;font-size:10px;font-weight:500;background:rgba(0,0,0,0.05);color:var(--text-muted);cursor:pointer;border:none;font-family:'DM Sans',sans-serif;transition:all 0.15s;white-space:nowrap}
+.pill.active{background:var(--accent);color:#fff}
+.pill:hover:not(.active){background:rgba(0,0,0,0.09)}
+body.dark .pill{background:rgba(255,255,255,0.06);color:#888}
+body.dark .pill:hover:not(.active){background:rgba(255,255,255,0.1)}
+.mode-pills{display:flex;gap:3px}
+.mode-pill{display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 10px;border-radius:8px;background:rgba(0,0,0,0.05);border:1.5px solid transparent;cursor:pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif}
+.mode-pill .mp-icon{font-size:13px;line-height:1}
+.mode-pill .mp-lbl{font-size:8px;font-weight:500;color:var(--text-muted);letter-spacing:0.03em;text-transform:uppercase}
+.mode-pill.active{background:var(--accent-soft);border-color:var(--accent)}
+.mode-pill.active .mp-lbl{color:var(--accent)}
+.mode-pill:hover:not(.active){background:rgba(0,0,0,0.08)}
+body.dark .mode-pill{background:rgba(255,255,255,0.05)}
+#schedule-row{display:none;align-items:center;gap:5px;margin-top:6px}
+#schedule-row.show{display:flex}
+.time-input{width:66px;background:var(--input-bg);border:1.5px solid transparent;border-radius:7px;padding:4px 6px;font-size:11px;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;transition:border-color .15s}
+.time-input:focus{border-color:var(--accent)}
+
+/* THEME SWATCHES */
+#theme-wrap{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+.theme-swatch{aspect-ratio:1;border-radius:7px;cursor:pointer;border:2px solid transparent;position:relative;overflow:hidden;transition:transform 0.15s,border-color 0.15s,box-shadow 0.15s;box-shadow:inset 0 0 0 1px rgba(0,0,0,0.07)}
+.theme-swatch:hover{transform:scale(1.12);z-index:2}
+.theme-swatch.selected{border-color:var(--accent);transform:scale(1.08);box-shadow:0 0 0 1.5px var(--accent)}
+.theme-swatch.weather-swatch{background:linear-gradient(135deg,#87ceeb,#4a90d9)!important}
+.theme-sep{grid-column:1/-1;height:1px;background:rgba(0,0,0,0.07);margin:2px 0}
+body.dark .theme-sep{background:rgba(255,255,255,0.07)}
+
+/* CUSTOM BG */
+#custom-bg-wrap{margin-top:6px;display:flex;flex-direction:column;gap:5px}
+.cb-row{display:flex;align-items:center;gap:7px}
+.cb-lbl{font-size:9px;color:var(--text-muted);min-width:32px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase}
+.color-chip{width:22px;height:22px;border-radius:6px;border:2px solid rgba(0,0,0,0.12);cursor:pointer;flex-shrink:0;position:relative;overflow:hidden}
+.color-chip input[type=color]{position:absolute;inset:-4px;width:calc(100%+8px);height:calc(100%+8px);opacity:0;cursor:pointer;border:none;padding:0}
+body.dark .color-chip{border-color:rgba(255,255,255,0.15)}
+.dir-btns{display:flex;gap:3px}
+.dir-btn{width:18px;height:18px;border-radius:4px;border:none;background:rgba(0,0,0,0.07);color:var(--text-muted);font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s}
+.dir-btn.active{background:var(--accent);color:#fff}
+body.dark .dir-btn{background:rgba(255,255,255,0.07)}
+#bg-preview{height:12px;border-radius:4px;border:1px solid rgba(0,0,0,0.09);transition:background 0.3s}
+body.dark #bg-preview{border-color:rgba(255,255,255,0.08)}
+
+#accent-wrap{display:flex;gap:5px;flex-wrap:wrap;width:100%}
+.accent-dot{width:22px;height:22px;border-radius:6px;cursor:pointer;border:2.5px solid transparent;transition:transform 0.15s,border-color 0.15s;flex-shrink:0}
+.accent-dot:hover{transform:scale(1.18)}
+.accent-dot.selected{border-color:var(--text);transform:scale(1.12)}
+
+.feat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.feat-btn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border-radius:9px;background:rgba(0,0,0,0.04);border:1.5px solid transparent;cursor:pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif}
+.feat-btn svg{width:14px;height:14px;stroke:var(--text-muted);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;transition:stroke 0.15s}
+.feat-btn span{font-size:8px;font-weight:500;color:var(--text-muted);text-transform:uppercase;transition:color 0.15s}
+.feat-btn.active{background:var(--accent-soft);border-color:var(--accent)}
+.feat-btn.active svg{stroke:var(--accent)}
+.feat-btn.active span{color:var(--accent)}
+.feat-btn:hover:not(.active){background:rgba(0,0,0,0.07)}
+body.dark .feat-btn{background:rgba(255,255,255,0.04)}
+.lbtns{display:flex;gap:3px;flex:1}
+.lbtn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:5px 2px;border-radius:7px;background:rgba(0,0,0,0.04);border:1.5px solid transparent;cursor:pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif;font-size:9px;font-weight:500;color:var(--text-muted)}
+.lbtn.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.lbtn:hover:not(.active){background:rgba(0,0,0,0.08)}
+body.dark .lbtn{background:rgba(255,255,255,0.04)}
+body.dark .lbtn:hover:not(.active){background:rgba(255,255,255,0.08)}
+.col-dots{display:grid;gap:2px;margin-bottom:1px}
+.col-dots span{background:currentColor;opacity:0.45;border-radius:1px;display:block;height:3px}
+.icards{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}
+.icards-3{grid-template-columns:repeat(3,1fr)}
+.icard{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:6px 3px;border-radius:9px;background:rgba(0,0,0,0.04);border:1.5px solid transparent;cursor:pointer;transition:all 0.15s}
+.icard-preview{display:flex;gap:2px;align-items:center;justify-content:center;margin-bottom:1px}
+.icard-preview .mc{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+.icard .ep{width:22px;height:22px;border-radius:5px;background:var(--accent-soft);border:1.5px solid rgba(59,130,246,0.2);display:flex;align-items:center;justify-content:center;font-size:10px;position:relative;overflow:hidden;transition:transform 0.2s,box-shadow 0.2s}
+.icard .il{font-size:7px;font-weight:500;color:var(--text-muted);letter-spacing:0.03em;text-transform:uppercase}
+.icard.active{background:var(--accent-soft);border-color:var(--accent)}
+.icard.active .il{color:var(--accent)}
+.icard:hover:not(.active){background:rgba(0,0,0,0.07)}
+body.dark .icard{background:rgba(255,255,255,0.04)}
+.icard[data-effect="lift"]:hover .ep{transform:translateY(-5px);box-shadow:0 5px 12px rgba(0,0,0,0.2)}
+.icard[data-effect="glow"]:hover .ep{box-shadow:0 0 10px 3px var(--accent-soft)}
+.icard[data-effect="float"]:hover .ep{animation:ef-f 1.6s ease-in-out infinite}
+.icard[data-effect="shine"]:hover .ep::after{content:'';position:absolute;top:-50%;left:-80%;width:55%;height:200%;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.7) 50%,transparent 70%);animation:ef-s .4s ease forwards}
+.icard[data-effect="shadow"]:hover .ep{box-shadow:0 10px 20px rgba(0,0,0,0.25);transform:translateY(-3px)}
+.icard[data-effect="pulse"]:hover .ep{animation:ef-p .7s ease-in-out}
+.icard[data-effect="tilt3d"]:hover .ep{transform:perspective(60px) rotateY(14deg) rotateX(8deg)}
+.icard[data-effect="none"] .ep{opacity:.35}
+@keyframes ef-f{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@keyframes ef-s{from{left:-80%}to{left:130%}}
+@keyframes ef-p{0%{transform:scale(1)}40%{transform:scale(1.1)}70%{transform:scale(0.97)}100%{transform:scale(1)}}
+.s-input{flex:1;background:var(--input-bg);border:1.5px solid transparent;border-radius:7px;padding:4px 8px;font-size:11px;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;transition:border-color .15s}
+.s-input:focus{border-color:var(--accent)}
+.wcity-row{display:flex;gap:4px;align-items:center;flex:1}
+#btn-weather-refresh{width:22px;height:22px;border-radius:6px;border:none;background:rgba(0,0,0,0.06);color:var(--text-muted);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
+#btn-weather-refresh:hover{background:rgba(0,0,0,.12)}
+body.dark #btn-weather-refresh{background:rgba(255,255,255,.07)}
+#advanced-toggle{display:flex;align-items:center;justify-content:center;gap:4px;padding:5px;border-radius:7px;cursor:pointer;background:transparent;border:1px dashed rgba(0,0,0,.12);font-size:10px;font-weight:500;color:var(--text-muted);transition:background .15s;font-family:'DM Sans',sans-serif;width:100%}
+#advanced-toggle svg{width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
+#advanced-toggle.open svg{transform:rotate(180deg)}
+#advanced-toggle:hover{background:rgba(0,0,0,.05)}
+body.dark #advanced-toggle{border-color:rgba(255,255,255,.1)}
+#adv-section{display:none;margin-top:6px}
+#adv-section.open{display:block}
+.adv-row{display:flex;align-items:center;gap:6px;padding:3px 0}
+.adv-lbl{font-size:9px;color:var(--text-muted);min-width:60px;flex-shrink:0}
+input[type=range]{-webkit-appearance:none;appearance:none;height:3px;border-radius:4px;background:rgba(0,0,0,.12);outline:none;cursor:pointer;flex:1}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--accent);box-shadow:0 1px 4px rgba(0,0,0,.2)}
+body.dark input[type=range]{background:rgba(255,255,255,.1)}
+.rval{min-width:26px;font-size:10px;color:var(--text-muted);text-align:right;flex-shrink:0}
+.action-row{display:flex;gap:4px;margin-top:6px}
+.action-btn{flex:1;padding:5px 6px;border-radius:7px;font-size:10px;font-weight:500;background:rgba(0,0,0,.05);color:var(--text-muted);cursor:pointer;border:none;font-family:'DM Sans',sans-serif;transition:all .15s;text-align:center}
+.action-btn:hover{background:rgba(0,0,0,.1);color:var(--text)}
+body.dark .action-btn{background:rgba(255,255,255,.06);color:#888}
+#file-import{display:none}
+.sub-row{display:none;margin-top:5px}
+.sub-row.show{display:flex;align-items:center;gap:7px}
+
+/* CARD STYLES */
+body.card-gradient .card{background:linear-gradient(160deg,rgba(255,255,255,.94),rgba(240,240,252,.8));border:1px solid rgba(255,255,255,.92)}
+body.card-gradient.dark .card{background:linear-gradient(160deg,rgba(68,68,88,.82),rgba(44,44,62,.72));border:1px solid rgba(255,255,255,.07)}
+body.card-elevated .card{background:var(--card);box-shadow:0 6px 22px rgba(0,0,0,.13),0 1px 4px rgba(0,0,0,.07);border:none}
+body.card-elevated.dark .card{box-shadow:0 6px 24px rgba(0,0,0,.52),0 1px 4px rgba(0,0,0,.32)}
+body.card-glass .card{background:rgba(255,255,255,.2);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.5);box-shadow:0 4px 16px rgba(0,0,0,.07),inset 0 1px 0 rgba(255,255,255,.6)}
+body.card-glass.dark .card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11)}
+body.card-outline .card{background:transparent;border:1.5px solid rgba(0,0,0,.14);box-shadow:none}
+body.card-outline.dark .card{border-color:rgba(255,255,255,.16)}
+body.card-deep .card{background:var(--card);border:none;box-shadow:0 8px 28px rgba(0,0,0,.22),0 2px 6px rgba(0,0,0,.12)}
+body.card-deep.dark .card{box-shadow:0 8px 32px rgba(0,0,0,.65),0 2px 8px rgba(0,0,0,.4)}
+
+/* DARK */
+body.dark{--card:rgba(42,42,56,.82);--card-hover:rgba(58,58,74,.95);--card-border:rgba(255,255,255,.08);--text:#efefef;--text-muted:#888;--panel-bg:rgba(18,18,28,.98);--panel-border:rgba(255,255,255,.09);--modal-bg:#18182a;--input-bg:#0e0e1c;--shadow:0 2px 12px rgba(0,0,0,.55);--shadow-hover:0 8px 28px rgba(0,0,0,.65);--accent-soft:rgba(59,130,246,.22)}
+body.dark .label{color:#8a8aaa}
+
+/* MODAL */
+#modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:100;align-items:center;justify-content:center;backdrop-filter:blur(5px)}
+#modal-overlay.open{display:flex}
+#modal{background:var(--modal-bg);border-radius:20px;padding:24px 26px;width:320px;box-shadow:0 20px 60px rgba(0,0,0,.22)}
+#modal h3{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:11px}
+.field label{font-size:10px;font-weight:600;color:var(--text-muted);letter-spacing:.05em;text-transform:uppercase}
+.field input{background:var(--input-bg);border:1.5px solid transparent;border-radius:9px;padding:8px 11px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;transition:border-color .15s}
+.field input:focus{border-color:var(--accent)}
+.field small{font-size:11px;color:var(--text-muted)}
+.mactions{display:flex;gap:7px;margin-top:16px}
+.mactions button{flex:1;padding:9px;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;border:none;transition:background .15s}
+#btn-cancel{background:#f0f0f4;color:var(--text-muted)}
+#btn-cancel:hover{background:#e5e5eb;color:var(--text)}
+#btn-save{background:var(--accent);color:#fff}
+#btn-save:hover{opacity:.88}
+body.dark #btn-cancel{background:#252535;color:#888}
+#sep-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:100;align-items:center;justify-content:center;backdrop-filter:blur(5px)}
+#sep-modal-overlay.open{display:flex}
+#sep-modal{background:var(--modal-bg);border-radius:20px;padding:24px 26px;width:280px;box-shadow:0 20px 60px rgba(0,0,0,.22)}
+#sep-modal h3{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px}
+#input-sep-label{width:100%;background:var(--input-bg);border:1.5px solid transparent;border-radius:9px;padding:8px 11px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;transition:border-color .15s;margin-bottom:16px}
+#input-sep-label:focus{border-color:var(--accent)}
+.card.dragging{opacity:.3}
+.card.drag-over{box-shadow:0 0 0 2px var(--accent),var(--shadow)!important}
+/* branding */
+#sdx-brand{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:1;opacity:0;transition:opacity 0.3s;pointer-events:none}
+body:hover #sdx-brand{opacity:1}
+#sdx-brand span{font-size:10px;color:var(--text-muted);opacity:0.4;letter-spacing:0.05em}
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(8px);background:rgba(12,12,20,.94);color:#fff;padding:8px 18px;border-radius:50px;font-size:12px;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;z-index:200}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body class="hover-lift">
+<canvas id="bg-canvas"></canvas>
+
+<!-- Weather Widget -->
+<div id="weather-widget">
+  <div id="weather-card">
+    <div id="weather-loading">⏳</div>
+    <div id="weather-content" style="display:none">
+      <div id="weather-top"><div id="weather-icon"></div><div id="weather-temp">--°</div></div>
+      <div id="weather-bottom"><div id="weather-desc"></div><div id="weather-city"></div></div>
+    </div>
+    <button id="weather-widget-refresh" title="Refresh">↺</button>
+  </div>
+</div>
+
+<!-- Weather Popup -->
+<div id="weather-popup">
+  <!-- Header -->
+  <div id="wp-header">
+    <div id="wp-main">
+      <div id="wp-icon"></div>
+      <div id="wp-info">
+        <div id="wp-temp-big">--°</div>
+        <div id="wp-desc-big"></div>
+        <div id="wp-city-big"></div>
+        <div id="wp-hi-lo"></div>
+      </div>
+    </div>
+    <div id="wp-right-col">
+      <div id="wp-actions">
+        <button id="wp-close">✕</button>
+        <button id="wp-pin" title="Pin forecast">📌</button>
+        <button id="wp-refresh" title="Refresh">↺</button>
+      </div>
+      <div id="wp-stats"></div>
+    </div>
+  </div>
+  <!-- Temp progress bar -->
+  <div id="wp-temp-bar-section">
+    <div id="wp-temp-bar-wrap">
+      <div id="wp-temp-bar-fill"></div>
+      <div id="wp-temp-bar-dot"></div>
+    </div>
+    <div id="wp-temp-bar-labels"><span id="wp-bar-min"></span><span id="wp-bar-max"></span></div>
+  </div>
+  <!-- Hourly chart -->
+  <div id="wp-chart-section">
+    <div class="wp-section-label">Next 24 hours</div>
+    <svg id="wp-chart-svg" height="90"></svg>
+  </div>
+  <!-- Solar arc -->
+  <div id="wp-solar-section">
+    <div class="wp-section-label">Solar</div>
+    <div id="wp-solar-wrap">
+      <svg id="wp-solar-svg"></svg>
+    </div>
+    <div id="wp-solar-labels">
+      <div class="wp-solar-time" id="wp-sunrise-label">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v8M4.93 10.93l1.41 1.41M2 18h2M20 18h2M19.07 10.93l-1.41 1.41M22 22H2M8 6l4-4 4 4M16 18a4 4 0 0 0-8 0"/></svg>
+        <span>--:--</span>
+      </div>
+      <div class="wp-solar-time" id="wp-sunset-label">
+        <span>--:--</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 10v8M4.93 13.07l1.41 1.41M2 18h2M20 18h2M19.07 13.07l-1.41 1.41M22 22H2M8 14l4 4 4-4M16 18a4 4 0 0 0-8 0"/></svg>
+      </div>
+    </div>
+  </div>
+  <!-- 5-day -->
+  <div id="wp-daily-section">
+    <div class="wp-section-label" style="padding:3px 0 0 0">5-day forecast</div>
+    <div id="wp-daily"></div>
+  </div>
+  <!-- Provider link -->
+  <a id="wp-provider-link" href="#" target="_blank" rel="noopener">Open full forecast ↗</a>
+</div>
+
+<!-- Corner Controls -->
+<div id="corner-controls">
+  <button class="icon-btn" id="btn-edit" title="Edit">
+    <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+  </button>
+  <button class="icon-btn" id="btn-settings-toggle" title="Settings">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+  </button>
+</div>
+
+<!-- Settings Panel -->
+<div id="settings-panel">
+  <div id="panel-header">
+    <div id="panel-header-left">
+      <div class="sdx-logo"><span>S</span><span>D</span><span class="x">×</span><span class="empty"></span></div>
+      <div class="sdx-credit">Paul Chirila · SDx · 2026</div>
+      <span id="panel-title">SDx</span><span id="panel-version">v5</span>
+    </div>
+    <button class="panel-close-btn" id="btn-panel-close">✕</button>
+  </div>
+  <div class="settings-body">
+
+    <!-- THEME + ACCENT -->
+    <div class="s-card">
+      <div class="s-title">Theme</div>
+      <div style="display:flex;gap:4px;margin-bottom:8px">
+        <button class="pill" id="bg-mode-light" style="flex:1">☀ Light</button>
+        <button class="pill" id="bg-mode-dark" style="flex:1">🌙 Dark</button>
+        <button class="pill" id="bg-mode-weather" style="flex:1">🌤 Weather</button>
+        <button class="pill" id="bg-mode-auto" style="flex:1">⚙ Auto</button>
+      </div>
+      <!-- color + type row -->
+      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap" id="bg-color-controls">
+        <div class="color-chip" id="chip1"><input type="color" id="tc-color1" value="#eceef3"/></div>
+        <div style="display:flex;gap:3px">
+          <button class="pill" id="bg-solid">Solid</button>
+          <button class="pill" id="bg-gradient">Gradient</button>
+        </div>
+        <div id="chip2-wrap" style="display:none;display:flex;align-items:center;gap:4px">
+          <span style="font-size:10px;color:var(--text-muted)">→</span>
+          <div class="color-chip" id="chip2"><input type="color" id="tc-color2" value="#d4dce8"/></div>
+          <div class="dir-btns">
+            <button class="dir-btn" data-dir="to right">→</button>
+            <button class="dir-btn" data-dir="to bottom right">↘</button>
+            <button class="dir-btn" data-dir="to bottom">↓</button>
+          </div>
+        </div>
+      </div>
+      <div id="bg-preview" style="margin-top:6px"></div>
+      <!-- Auto sub-options: System or Schedule -->
+      <div id="auto-sub-row" style="display:none;margin-top:6px;gap:4px;align-items:center">
+        <span style="font-size:9px;color:var(--text-muted);text-transform:uppercase;font-weight:600;letter-spacing:.05em;min-width:32px">Mode</span>
+        <button class="pill" id="tog-system" style="flex:1">System</button>
+        <button class="pill" id="tog-schedule" style="flex:1">⏰ Schedule</button>
+      </div>
+      <div id="schedule-row" style="margin-top:6px">
+        <span style="font-size:10px;color:var(--text-muted)">☀</span>
+        <input type="time" id="schedule-light" class="time-input" value="07:00"/>
+        <span style="font-size:10px;color:var(--text-muted)">🌙</span>
+        <input type="time" id="schedule-dark" class="time-input" value="20:00"/>
+      </div>
+      <!-- Accent -->
+      <div class="s-title" style="margin-top:9px">Accent</div>
+      <div id="accent-wrap"></div>
+    </div>
+
+    <!-- WIDGETS -->
+    <div class="s-card">
+      <div class="s-title">Widgets</div>
+      <div class="feat-grid">
+        <button class="feat-btn" id="feat-clock"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Clock</span></button>
+        <button class="feat-btn" id="feat-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span>Search</span></button>
+        <button class="feat-btn" id="feat-labels"><svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg><span>Labels</span></button>
+        <button class="feat-btn active" id="feat-weather"><svg viewBox="0 0 24 24"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg><span>Weather</span></button>
+        <button class="feat-btn" id="feat-greeting"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Greet</span></button>
+      </div>
+      <div class="sub-row" id="sub-greeting"><div class="s-lbl">Text</div><input id="input-greeting" class="s-input" type="text" placeholder="Good morning, Paul!"/></div>
+      <div class="sub-row" id="sub-engine"><div class="s-lbl">Engine</div><div class="pills"><button class="pill" id="eng-google">Google</button><button class="pill" id="eng-ddg">DDG</button><button class="pill" id="eng-brave">Brave</button></div></div>
+      <div class="sub-row show" id="sub-weather-city"><div class="s-lbl">City</div><div class="wcity-row"><input id="input-weather-city" class="s-input" type="text" placeholder="Auto / Cluj…"/><button id="btn-weather-refresh">↺</button></div></div>
+      <div class="sub-row show" id="sub-weather-icons"><div class="s-lbl">Icons</div><div class="pills" id="weather-icon-group" style="gap:4px">
+        <button class="pill icon-style-pill" data-theme="line" title="Line"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#64748b" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="2" x2="12" y2="4.5"/><line x1="12" y1="19.5" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="5.93" y2="5.93"/><line x1="18.07" y1="18.07" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="4.5" y2="12"/><line x1="19.5" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="5.93" y2="18.07"/><line x1="18.07" y1="5.93" x2="19.78" y2="4.22"/></svg></button>
+        <button class="pill icon-style-pill" data-theme="filled" title="Filled"><svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="4.5" fill="#94a3b8"/><g stroke="#64748b" stroke-width="1.8" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="4.5"/><line x1="12" y1="19.5" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="5.93" y2="5.93"/><line x1="18.07" y1="18.07" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="4.5" y2="12"/><line x1="19.5" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="5.93" y2="18.07"/><line x1="18.07" y1="5.93" x2="19.78" y2="4.22"/></g></svg></button>
+        <button class="pill icon-style-pill active" data-theme="color" title="Color"><svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="4.5" fill="#fbbf24"/><g stroke="#f59e0b" stroke-width="2" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="4.5"/><line x1="12" y1="19.5" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="5.93" y2="5.93"/><line x1="18.07" y1="18.07" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="4.5" y2="12"/><line x1="19.5" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="5.93" y2="18.07"/><line x1="18.07" y1="5.93" x2="19.78" y2="4.22"/></g></svg></button>
+        <button class="pill icon-style-pill" data-theme="duotone" title="Duotone"><svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="4.5" fill="#d97706"/><g stroke="#fcd34d" stroke-width="2" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="4.5"/><line x1="12" y1="19.5" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="5.93" y2="5.93"/><line x1="18.07" y1="18.07" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="4.5" y2="12"/><line x1="19.5" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="5.93" y2="18.07"/><line x1="18.07" y1="5.93" x2="19.78" y2="4.22"/></g></svg></button>
+        <button class="pill icon-style-pill" data-theme="outcolor" title="Outlined color"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#f59e0b" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="2" x2="12" y2="4.5"/><line x1="12" y1="19.5" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="5.93" y2="5.93"/><line x1="18.07" y1="18.07" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="4.5" y2="12"/><line x1="19.5" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="5.93" y2="18.07"/><line x1="18.07" y1="5.93" x2="19.78" y2="4.22"/></svg></button>
+      </div></div>
+      <div class="sub-row show" id="sub-weather-provider"><div class="s-lbl">Link</div><div style="flex:1"><div class="pills" id="weather-provider-group"><button class="pill active" data-prov="accuweather">AccuW</button><button class="pill" data-prov="wttr">wttr.in</button><button class="pill" data-prov="weather">Weather.com</button></div><div style="font-size:9px;color:var(--text-muted);margin-top:4px;opacity:0.7">Opens external site for full forecast</div></div></div>
+    </div>
+
+    <!-- LINKS -->
+    <div class="s-card">
+      <div class="s-title">Links</div>
+      <div class="s-row"><div class="s-lbl">Open in</div><div class="pills"><button class="pill" id="tog-newtab-on">New tab</button><button class="pill" id="tog-newtab-off">Same tab</button></div></div>
+    </div>
+
+    <!-- LAYOUT 2col -->
+    <div class="s-cols">
+      <div class="s-card">
+        <div class="s-title">Columns</div>
+        <div class="lbtns" id="cols-group">
+          <button class="lbtn" data-cols="6"><div class="col-dots" style="grid-template-columns:repeat(3,5px)"><span></span><span></span><span></span><span></span><span></span><span></span></div><span>6</span></button>
+          <button class="lbtn" data-cols="8"><div class="col-dots" style="grid-template-columns:repeat(4,4px)"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><span>8</span></button>
+          <button class="lbtn" data-cols="10"><div class="col-dots" style="grid-template-columns:repeat(5,3px)"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><span>10</span></button>
+        </div>
+        <div class="s-title" style="margin-top:7px">Size</div>
+        <div class="lbtns" id="size-group">
+          <button class="lbtn" data-size="72"><span style="font-size:8px">■</span><span>S</span></button>
+          <button class="lbtn" data-size="88"><span style="font-size:11px">■</span><span>M</span></button>
+          <button class="lbtn" data-size="108"><span style="font-size:14px">■</span><span>L</span></button>
+          <button class="lbtn" data-size="128"><span style="font-size:17px">■</span><span>XL</span></button>
+        </div>
+      </div>
+      <div class="s-card">
+        <div class="s-title">Spacing</div>
+        <div class="lbtns" id="gap-group">
+          <button class="lbtn" data-gap="20"><span>▪▪</span><span>Tight</span></button>
+          <button class="lbtn" data-gap="36"><span>▪ ▪</span><span>Norm</span></button>
+          <button class="lbtn" data-gap="56"><span>▪&ensp;▪</span><span>Airy</span></button>
+        </div>
+        <div class="s-title" style="margin-top:7px">Corners</div>
+        <div class="lbtns" id="radius-group">
+          <button class="lbtn" data-radius="4"><div style="border-radius:1px;width:14px;height:10px;background:currentColor;opacity:.45"></div><span>Sharp</span></button>
+          <button class="lbtn" data-radius="12"><div style="border-radius:4px;width:14px;height:10px;background:currentColor;opacity:.45"></div><span>Med</span></button>
+          <button class="lbtn" data-radius="24"><div style="border-radius:7px;width:14px;height:10px;background:currentColor;opacity:.45"></div><span>Round</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- EFFECTS + CARD STYLE -->
+    <div class="s-cols">
+      <div class="s-card">
+        <div class="s-title">Hover</div>
+        <div class="icards" id="effect-grid">
+          <div class="icard" data-effect="none"><div class="ep">–</div><div class="il">None</div></div>
+          <div class="icard" data-effect="lift"><div class="ep">↑</div><div class="il">Lift</div></div>
+          <div class="icard" data-effect="glow"><div class="ep">✦</div><div class="il">Glow</div></div>
+          <div class="icard" data-effect="float"><div class="ep">⊕</div><div class="il">Zoom</div></div>
+          <div class="icard" data-effect="shine"><div class="ep">✨</div><div class="il">Shine</div></div>
+          <div class="icard" data-effect="shadow"><div class="ep">⬇</div><div class="il">Shadow</div></div>
+          <div class="icard" data-effect="pulse"><div class="ep">◎</div><div class="il">Pulse</div></div>
+          <div class="icard" data-effect="tilt3d"><div class="ep">◈</div><div class="il">Tilt</div></div>
+        </div>
+      </div>
+      <div class="s-card">
+        <div class="s-title">Card style</div>
+        <div class="icards icards-3" id="cardstyle-grid" style="grid-template-columns:repeat(3,1fr)">
+          <div class="icard" data-style="flat"><div class="icard-preview"><div class="mc" style="background:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.9)"></div><div class="mc" style="background:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.9)"></div><div class="mc" style="background:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.9)"></div></div><div class="il">Flat</div></div>
+          <div class="icard" data-style="gradient"><div class="icard-preview"><div class="mc" style="background:linear-gradient(135deg,rgba(255,255,255,.95),rgba(230,230,250,.8))"></div><div class="mc" style="background:linear-gradient(135deg,rgba(255,255,255,.95),rgba(230,230,250,.8))"></div><div class="mc" style="background:linear-gradient(135deg,rgba(255,255,255,.95),rgba(230,230,250,.8))"></div></div><div class="il">Grad</div></div>
+          <div class="icard" data-style="elevated"><div class="icard-preview"><div class="mc" style="background:rgba(255,255,255,.82);box-shadow:0 3px 8px rgba(0,0,0,.18)"></div><div class="mc" style="background:rgba(255,255,255,.82);box-shadow:0 3px 8px rgba(0,0,0,.18)"></div><div class="mc" style="background:rgba(255,255,255,.82);box-shadow:0 3px 8px rgba(0,0,0,.18)"></div></div><div class="il">Raised</div></div>
+          <div class="icard" data-style="glass"><div class="icard-preview"><div class="mc" style="background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.55)"></div><div class="mc" style="background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.55)"></div><div class="mc" style="background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.55)"></div></div><div class="il">Glass</div></div>
+          <div class="icard" data-style="outline"><div class="icard-preview"><div class="mc" style="background:transparent;border:1.5px solid rgba(0,0,0,.22)"></div><div class="mc" style="background:transparent;border:1.5px solid rgba(0,0,0,.22)"></div><div class="mc" style="background:transparent;border:1.5px solid rgba(0,0,0,.22)"></div></div><div class="il">Line</div></div>
+          <div class="icard" data-style="deep"><div class="icard-preview"><div class="mc" style="background:rgba(255,255,255,.88);box-shadow:0 6px 16px rgba(0,0,0,.28),0 1px 3px rgba(0,0,0,.15)"></div><div class="mc" style="background:rgba(255,255,255,.88);box-shadow:0 6px 16px rgba(0,0,0,.28),0 1px 3px rgba(0,0,0,.15)"></div><div class="mc" style="background:rgba(255,255,255,.88);box-shadow:0 6px 16px rgba(0,0,0,.28),0 1px 3px rgba(0,0,0,.15)"></div></div><div class="il">Deep</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADVANCED -->
+    <div class="s-card">
+      <button id="advanced-toggle"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>Advanced</button>
+      <div id="adv-section">
+        <div class="adv-row"><span class="adv-lbl">Columns</span><input type="range" id="rng-cols" min="4" max="12" step="1"/><span class="rval" id="val-cols">8</span></div>
+        <div class="adv-row"><span class="adv-lbl">Size</span><input type="range" id="rng-size" min="56" max="150" step="4"/><span class="rval" id="val-size">88px</span></div>
+        <div class="adv-row"><span class="adv-lbl">Spacing</span><input type="range" id="rng-gap" min="8" max="80" step="2"/><span class="rval" id="val-gap">36px</span></div>
+        <div class="adv-row"><span class="adv-lbl">Corners</span><input type="range" id="rng-radius" min="0" max="48" step="2"/><span class="rval" id="val-radius">14px</span></div>
+        <div class="adv-row"><span class="adv-lbl">Font</span><input type="range" id="rng-font" min="8" max="16" step="1"/><span class="rval" id="val-font">10px</span></div>
+        <div class="adv-row"><span class="adv-lbl">Clock</span><input type="range" id="rng-clock-font" min="40" max="110" step="2"/><span class="rval" id="val-clock-font">72px</span></div>
+        <div class="adv-row"><span class="adv-lbl">Greeting</span><input type="range" id="rng-greeting-font" min="11" max="32" step="1"/><span class="rval" id="val-greeting-font">15px</span></div>
+      </div>
+      <div class="action-row">
+        <button class="action-btn" id="btn-export">⬇ Export</button>
+        <button class="action-btn" id="btn-import-trigger">⬆ Import</button>
+        <input type="file" id="file-import" accept=".json"/>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="main-content">
+  <div id="top-widgets">
+    <div id="greeting-wrap"><div id="greeting-text"></div></div>
+    <div id="clock-wrap"><div id="clock-time">00:00</div><div id="clock-date"></div></div>
+    <div id="search-wrap"><input id="search-input" type="text" placeholder="🔍  Search..."/></div>
+  </div>
+  <div id="grid"></div>
+</div>
+
+<div id="sdx-brand"><span>Speed Dial X</span></div>
+<div id="edit-ok-bar"><button id="btn-done-bar">✓ Done</button></div>
+
+<!-- Modals -->
+<div id="modal-overlay">
+  <div id="modal">
+    <h3 id="modal-title">Add link</h3>
+    <div class="field"><label>URL</label><input id="input-url" type="url" placeholder="https://..."/></div>
+    <div class="field"><label>Name</label><input id="input-name" type="text" placeholder="YouTube…"/></div>
+    <div class="field">
+      <label>Icon</label>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <img id="modal-fav-preview" src="" alt="" style="width:32px;height:32px;border-radius:7px;object-fit:contain;display:none;flex-shrink:0"/>
+        <div id="modal-fav-fallback" style="display:none;width:32px;height:32px;border-radius:7px;align-items:center;justify-content:center;font-size:16px;font-weight:600;color:#fff;flex-shrink:0"></div>
+        <button id="btn-pick-icon" style="flex:1;padding:5px 10px;border-radius:8px;font-size:11px;background:rgba(0,0,0,.06);color:var(--text-muted);border:none;cursor:pointer;font-family:inherit;text-align:left">🔄 Change icon...</button>
+      </div>
+      <div id="icon-picker" style="display:none;flex-wrap:wrap;gap:6px;margin-top:4px;padding:10px;background:var(--input-bg);border-radius:10px;max-height:140px;overflow-y:auto"></div>
+      <input id="input-emoji" type="text" placeholder="or type any emoji: 🎸" style="background:var(--input-bg);border:1.5px solid transparent;border-radius:9px;padding:7px 10px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;width:100%;margin-top:6px"/>
+      <small>Type an emoji, or pick from suggestions</small>
+    </div>
+    <div class="field" style="flex-direction:row;align-items:center;gap:10px">
+      <label style="margin:0">Show badge</label>
+      <input id="input-badge" type="checkbox" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer"/>
+    </div>
+    <div class="mactions"><button id="btn-cancel">Cancel</button><button id="btn-save">Save</button></div>
+  </div>
+</div>
+<div id="sep-modal-overlay">
+  <div id="sep-modal">
+    <h3>Add separator</h3>
+    <input id="input-sep-label" type="text" placeholder="e.g. Work, Social…"/>
+    <div class="mactions"><button id="sep-btn-cancel">Cancel</button><button id="sep-btn-save" style="background:var(--accent);color:#fff">Add</button></div>
+  </div>
+</div>
+<div id="toast"></div>
+<script src="newtab.js"></script>
+</body>
+</html>

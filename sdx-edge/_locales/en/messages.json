@@ -1,0 +1,10 @@
+{
+  "appName": {
+    "message": "SDx — Speed Dial",
+    "description": "Extension name"
+  },
+  "appDescription": {
+    "message": "A minimal, elegant new tab speed dial. Customize themes, accents, clock, search and more.",
+    "description": "Extension description"
+  }
+}

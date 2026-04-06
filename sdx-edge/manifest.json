@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "SDx — Speed Dial",
+  "short_name": "SDx",
+  "version": "3.0.0",
+  "description": "A minimal, elegant new tab speed dial. Customize themes, accents, clock, search and more.",
+  "author": "Paul",
+  "default_locale": "en",
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  },
+  "permissions": ["storage", "geolocation"],
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
