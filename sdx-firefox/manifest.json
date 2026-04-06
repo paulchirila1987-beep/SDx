@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "SDx \u2014 Speed Dial",
+  "short_name": "SDx",
+  "version": "7.1.1",
+  "description": "A minimal, elegant new tab speed dial.",
+  "author": "Paul Chirila",
+  "default_locale": "en",
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  },
+  "permissions": [
+    "storage",
+    "geolocation"
+  ],
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
